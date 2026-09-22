@@ -10,12 +10,15 @@
 #   bash docker/docker_build.sh myreg/octop:v1
 #   bash docker/docker_build.sh octop:dev --no-cache
 #
-# 国内加速（可选，需 BuildKit，本脚本默认已开启）:
-#   PIP_INDEX_URL=https://mirrors.cloud.tencent.com/pypi/simple \
-#   PIP_TRUSTED_HOST=mirrors.cloud.tencent.com \
-#   NPM_REGISTRY=https://mirrors.cloud.tencent.com/npm/ \
+# 国内加速（可选 build-arg，默认值见 compose 文件）:
+#   NPM_REGISTRY=https://registry.npmmirror.com \
+#   PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple \
 #   APT_MIRROR=mirrors.cloud.tencent.com \
 #   bash docker/docker_build.sh
+#
+# 注意：构建依赖预下载制品 docker/wheels 与 docker/requirements.txt
+# （BuildKit 构建容器内联网下载 Python 包会挂起），首次或依赖变更后先运行：
+#   docker run --rm -v "$PWD:/p" -w /p python:3.12-slim sh docker/fetch_wheels.sh
 # =============================================================================
 set -euo pipefail
 
@@ -24,6 +27,12 @@ cd "$REPO_ROOT"
 
 IMAGE_TAG="${1:-octop:latest}"
 shift 2>/dev/null || true
+
+if [ ! -d docker/wheels ] || [ ! -f docker/requirements.txt ]; then
+    echo "❌ 缺少预下载制品（docker/wheels 或 docker/requirements.txt），请先运行："
+    echo "   docker run --rm -v \"$REPO_ROOT:/p\" -w /p python:3.12-slim sh docker/fetch_wheels.sh"
+    exit 1
+fi
 
 # BuildKit 启用 Dockerfile 缓存挂载，加速 npm / pip / apt 下载
 export DOCKER_BUILDKIT=1
