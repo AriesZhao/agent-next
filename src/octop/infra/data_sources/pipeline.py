@@ -282,6 +282,8 @@ def run_pipeline(
                 attempts=attempts,
                 spilled=rendered.spilled,
                 file_path=rendered.file_path,
+                columns=rendered.columns,
+                rows=rendered.rows,
             )
         )
 

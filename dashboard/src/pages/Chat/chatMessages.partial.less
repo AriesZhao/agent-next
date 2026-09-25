@@ -781,6 +781,71 @@
   color: var(--fn-text-secondary);
 }
 
+/* ---------- Data source result renderer ---------- */
+.dataSourceResult {
+  margin-top: 8px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--fn-bg-secondary, rgba(0, 0, 0, 0.02));
+  border: 1px solid var(--fn-border-secondary, rgba(0, 0, 0, 0.06));
+}
+
+.dataSourceResultHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.dataSourceTable {
+  :global {
+    .ant-table {
+      font-size: 12px;
+    }
+    .ant-table-thead > tr > th {
+      padding: 8px 10px;
+      font-weight: 600;
+      background: var(--fn-bg-quaternary, rgba(0, 0, 0, 0.03));
+    }
+    .ant-table-tbody > tr > td {
+      padding: 6px 10px;
+    }
+  }
+}
+
+.dataSourceTabs {
+  :global {
+    .ant-tabs-nav {
+      margin-bottom: 12px;
+    }
+    .ant-tabs-tab {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+  }
+}
+
+.dataSourceSqlDetails {
+  margin-top: 12px;
+  font-size: 12px;
+
+  summary {
+    cursor: pointer;
+    color: var(--fn-text-secondary);
+    padding: 4px 0;
+    user-select: none;
+
+    &:hover {
+      color: var(--fn-text-primary);
+    }
+  }
+
+  pre {
+    margin-top: 8px;
+  }
+}
+
 .acpPermissionActions {
   display: flex;
   flex-wrap: wrap;

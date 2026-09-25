@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, Literal
 
 Status = Literal["ok", "empty", "blocked", "error"]
 
@@ -37,6 +37,9 @@ class PipelineOutcome:
     # Raw (sanitized) driver/error text — stored only in the audit row, never
     # returned to non-owners or the main agent context (design §8.6).
     audit_error: str = ""
+    # Structured result data for frontend chart rendering (octop_ui envelope).
+    columns: tuple[str, ...] = ()
+    rows: tuple[tuple[Any, ...], ...] = ()
 
     @property
     def ok(self) -> bool:

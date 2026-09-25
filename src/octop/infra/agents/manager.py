@@ -59,6 +59,7 @@ from octop.infra.backend.resolver import (
 from octop.infra.connectors.builder import (
     build_mcp_server_configs_for_user,
     gateway_mcp_server_names,
+    inject_api_connector_tools,
     inject_missing_gateway_tools,
 )
 from octop.infra.connectors.service import ConnectorService
@@ -1621,6 +1622,12 @@ class AgentManager:
             agent_id=agent_id,
             mcp_server_configs=agent.config.mcp_server_configs,
         )
+        inject_api_connector_tools(
+            agent,
+            svc=self._connector_svc,
+            user_id=user_id,
+            agent_id=agent_id,
+        )
         for name in server_names:
             agent.config.mcp_server_configs.setdefault(name, {})
 
@@ -2307,6 +2314,12 @@ class AgentManager:
                 user_id=uid,
                 agent_id=row.agent_id,
                 mcp_server_configs=cfg.mcp_server_configs,
+            )
+            inject_api_connector_tools(
+                agent,
+                svc=self._connector_svc,
+                user_id=uid,
+                agent_id=row.agent_id,
             )
         tool_set: frozenset[str] = getattr(agent, "_mcp_tool_name_set", frozenset())
         logger.info(

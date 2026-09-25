@@ -1,6 +1,7 @@
 import * as React from "react";
 import * as ReactJSX from "react/jsx-runtime";
 import { DefaultToolRenderer } from "./builtin/DefaultToolRenderer";
+import { DataSourceResultRenderer } from "./builtin/DataSourceResultRenderer";
 import { builtinPluginHost } from "./host";
 import { registerToolRenderer } from "./registry";
 
@@ -29,6 +30,12 @@ export function ensureBuiltinToolRenderers(): void {
     id: "default",
     pluginId: "builtin",
     component: DefaultToolRenderer,
+  });
+  registerToolRenderer({
+    id: "data-source-result",
+    pluginId: "builtin",
+    tools: ["query_data_source"],
+    component: DataSourceResultRenderer,
   });
   void builtinPluginHost;
 }

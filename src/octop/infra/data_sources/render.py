@@ -51,6 +51,8 @@ class Rendered:
     spilled: bool = False
     file_path: str = ""
     truncated: bool = False
+    columns: tuple[str, ...] = ()
+    rows: tuple[tuple[Any, ...], ...] = ()
 
 
 def _is_number(value: Any) -> bool:
@@ -125,10 +127,17 @@ def render_result(
         total_hint = _label(labels, "total_rows", n=row_count)
     suffix = _label(labels, "truncated_suffix") if truncated else ""
 
+    cols_tuple = tuple(columns)
+    rows_tuple = tuple(tuple(r) for r in rows)
+
     small = full
     if row_count <= _SAMPLE_ROWS and len(full) <= budget_chars:
         return Rendered(
-            text=f"{small}\n[{total_hint}{suffix}]", row_count=row_count, truncated=truncated
+            text=f"{small}\n[{total_hint}{suffix}]",
+            row_count=row_count,
+            truncated=truncated,
+            columns=cols_tuple,
+            rows=rows_tuple,
         )
 
     # Large or wide: sample + numeric aggregates.
@@ -149,16 +158,36 @@ def render_result(
     digest = "\n".join(part for part in digest_lines if part)
 
     if len(digest) <= budget_chars:
-        return Rendered(text=digest, row_count=row_count, truncated=truncated)
+        return Rendered(
+            text=digest,
+            row_count=row_count,
+            truncated=truncated,
+            columns=cols_tuple,
+            rows=rows_tuple,
+        )
 
     # Digest itself is over budget → spill full CSV, keep a lean digest + handle.
     if spill is not None:
         path = spill(_to_csv(columns, rows))
         lean = _render_table(columns, rows[:3])
         text = f"{lean}\n{_label(labels, 'spilled', path=path)}\n[{total_hint}{suffix}]"
+        # For spilled results, only include sample rows for chart rendering.
+        sample_rows = tuple(tuple(r) for r in rows[:_SAMPLE_ROWS])
         return Rendered(
-            text=text, row_count=row_count, spilled=True, file_path=path, truncated=truncated
+            text=text,
+            row_count=row_count,
+            spilled=True,
+            file_path=path,
+            truncated=truncated,
+            columns=cols_tuple,
+            rows=sample_rows,
         )
 
     # No spill available: hard-trim the digest to the budget.
-    return Rendered(text=digest[:budget_chars], row_count=row_count, truncated=truncated)
+    return Rendered(
+        text=digest[:budget_chars],
+        row_count=row_count,
+        truncated=truncated,
+        columns=cols_tuple,
+        rows=rows_tuple,
+    )

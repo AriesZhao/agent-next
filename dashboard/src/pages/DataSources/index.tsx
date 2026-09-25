@@ -229,9 +229,7 @@ export default function DataSourcesPage() {
           }
           await loadDataSources();
         } catch (err) {
-          messageApi.error(
-            apiErrorMessage(err, t("dataSources.deleteFailed")),
-          );
+          messageApi.error(apiErrorMessage(err, t("dataSources.deleteFailed")));
         }
       },
     });
@@ -302,9 +300,15 @@ export default function DataSourcesPage() {
     setSchemaLoading(true);
     try {
       const [schemaData, allowlistData, annotationsData] = await Promise.all([
-        dataSourcesApi.getSchema(selectedSource.data_source_id || selectedSource.id),
-        dataSourcesApi.getAllowlist(selectedSource.data_source_id || selectedSource.id),
-        dataSourcesApi.getAnnotations(selectedSource.data_source_id || selectedSource.id),
+        dataSourcesApi.getSchema(
+          selectedSource.data_source_id || selectedSource.id,
+        ),
+        dataSourcesApi.getAllowlist(
+          selectedSource.data_source_id || selectedSource.id,
+        ),
+        dataSourcesApi.getAnnotations(
+          selectedSource.data_source_id || selectedSource.id,
+        ),
       ]);
       setSchema(schemaData.tables);
       setAllowlist(allowlistData);
@@ -326,7 +330,9 @@ export default function DataSourcesPage() {
       setAllowlist(updated);
       messageApi.success(t("dataSources.allowlistSaved"));
     } catch (err) {
-      messageApi.error(apiErrorMessage(err, t("dataSources.allowlistSaveFailed")));
+      messageApi.error(
+        apiErrorMessage(err, t("dataSources.allowlistSaveFailed")),
+      );
     }
   };
 
@@ -445,7 +451,9 @@ export default function DataSourcesPage() {
       messageApi.success(t("dataSources.settingsSaved"));
       setSettingsDrawerOpen(false);
     } catch (err) {
-      messageApi.error(apiErrorMessage(err, t("dataSources.settingsSaveFailed")));
+      messageApi.error(
+        apiErrorMessage(err, t("dataSources.settingsSaveFailed")),
+      );
     } finally {
       setSettingsLoading(false);
     }
@@ -511,10 +519,7 @@ export default function DataSourcesPage() {
                   >
                     <List.Item.Meta
                       avatar={
-                        <Database
-                          size={24}
-                          style={{ color: "#1890ff" }}
-                        />
+                        <Database size={24} style={{ color: "#1890ff" }} />
                       }
                       title={
                         <Space>
@@ -572,7 +577,9 @@ export default function DataSourcesPage() {
                       </Title>
                       <Space size={4}>
                         <CopyableResourceId
-                          value={selectedSource.data_source_id || selectedSource.id}
+                          value={
+                            selectedSource.data_source_id || selectedSource.id
+                          }
                           label={t("dataSources.dataSourceId")}
                         />
                         <Tag>{selectedSource.engine}</Tag>
@@ -627,10 +634,7 @@ export default function DataSourcesPage() {
                   size="small"
                   style={{ marginBottom: 24 }}
                 >
-                  <Descriptions.Item
-                    label={t("dataSources.owner")}
-                    span={2}
-                  >
+                  <Descriptions.Item label={t("dataSources.owner")} span={2}>
                     {formatDataSourceOwner(selectedSource)}
                   </Descriptions.Item>
                   <Descriptions.Item label={t("dataSources.engine")}>
@@ -642,9 +646,7 @@ export default function DataSourcesPage() {
                   <Descriptions.Item label={t("dataSources.timeoutMs")}>
                     {selectedSource.timeout_ms}ms
                   </Descriptions.Item>
-                  <Descriptions.Item
-                    label={t("dataSources.contextCharBudget")}
-                  >
+                  <Descriptions.Item label={t("dataSources.contextCharBudget")}>
                     {selectedSource.context_char_budget}
                   </Descriptions.Item>
                   <Descriptions.Item label={t("dataSources.defaultOpen")}>
@@ -682,10 +684,7 @@ export default function DataSourcesPage() {
                   >
                     {t("dataSources.schemaAndAllowlist")}
                   </Button>
-                  <Button
-                    icon={<Search size={16} />}
-                    onClick={handleOpenQuery}
-                  >
+                  <Button icon={<Search size={16} />} onClick={handleOpenQuery}>
                     {t("dataSources.queryPreview")}
                   </Button>
                   <Button
@@ -901,10 +900,7 @@ export default function DataSourcesPage() {
             >
               <Input maxLength={200} />
             </Form.Item>
-            <Form.Item
-              name="schema_name"
-              label={t("dataSources.schemaName")}
-            >
+            <Form.Item name="schema_name" label={t("dataSources.schemaName")}>
               <Input
                 maxLength={200}
                 placeholder={t("dataSources.schemaNamePlaceholder")}
@@ -1098,10 +1094,10 @@ export default function DataSourcesPage() {
                     status === "ok"
                       ? "green"
                       : status === "empty"
-                        ? "blue"
-                        : status === "blocked"
-                          ? "orange"
-                          : "red";
+                      ? "blue"
+                      : status === "blocked"
+                      ? "orange"
+                      : "red";
                   return <Tag color={color}>{status}</Tag>;
                 },
               },
@@ -1133,10 +1129,7 @@ export default function DataSourcesPage() {
               <div style={{ marginBottom: 8 }}>
                 <strong>{t("dataSources.settingsEnabled")}</strong>
               </div>
-              <Switch
-                checked={settingsEnabled}
-                onChange={setSettingsEnabled}
-              />
+              <Switch checked={settingsEnabled} onChange={setSettingsEnabled} />
             </div>
             <div style={{ marginBottom: 24 }}>
               <div style={{ marginBottom: 8 }}>
@@ -1165,7 +1158,13 @@ export default function DataSourcesPage() {
   );
 }
 
-function Paragraph({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+function Paragraph({
+  children,
+  style,
+}: {
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}) {
   return <div style={style}>{children}</div>;
 }
 
@@ -1317,7 +1316,12 @@ function AnnotationsEditor({
   const handleAddColumnAnnotation = (tableName: string, columnName: string) => {
     setAnns([
       ...anns,
-      { scope: "column", table_name: tableName, column_name: columnName, note: "" },
+      {
+        scope: "column",
+        table_name: tableName,
+        column_name: columnName,
+        note: "",
+      },
     ]);
   };
 
@@ -1485,10 +1489,10 @@ function QueryResultDisplay({
     result.status === "ok"
       ? "green"
       : result.status === "empty"
-        ? "blue"
-        : result.status === "blocked"
-          ? "orange"
-          : "red";
+      ? "blue"
+      : result.status === "blocked"
+      ? "orange"
+      : "red";
 
   return (
     <div>
@@ -1497,17 +1501,20 @@ function QueryResultDisplay({
           result.status === "ok"
             ? "success"
             : result.status === "empty"
-              ? "info"
-              : result.status === "blocked"
-                ? "warning"
-                : "error"
+            ? "info"
+            : result.status === "blocked"
+            ? "warning"
+            : "error"
         }
         message={
           <Space>
             <Tag color={statusColor}>{result.status}</Tag>
             <span>
               {result.status === "ok" &&
-                `${t("dataSources.querySuccess")}`.replace("{{count}}", String(result.row_count))}
+                `${t("dataSources.querySuccess")}`.replace(
+                  "{{count}}",
+                  String(result.row_count),
+                )}
               {result.status === "empty" && t("dataSources.queryEmpty")}
               {result.status === "blocked" && t("dataSources.queryBlocked")}
               {result.status === "error" && t("dataSources.queryError")}
@@ -1550,9 +1557,13 @@ function QueryResultDisplay({
         </pre>
       </div>
       <Space size="middle" style={{ fontSize: 12, color: "#888" }}>
-        <span>{result.row_count} {t("dataSources.auditRows")}</span>
+        <span>
+          {result.row_count} {t("dataSources.auditRows")}
+        </span>
         <span>{result.latency_ms}ms</span>
-        <span>{result.attempts} {t("dataSources.queryAttempts")}</span>
+        <span>
+          {result.attempts} {t("dataSources.queryAttempts")}
+        </span>
       </Space>
     </div>
   );

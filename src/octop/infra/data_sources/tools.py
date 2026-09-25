@@ -15,6 +15,7 @@ an agent can only query the sources it was given.
 from __future__ import annotations
 
 import asyncio
+import json
 from collections.abc import Callable, Mapping, Sequence
 from typing import Annotated, Any
 
@@ -202,6 +203,23 @@ def build_data_source_tools(services: Any, *, workspace: Any = None) -> list[Str
                     thread_id=thread_id,
                 ),
             )
+            # Return octop_ui envelope with structured data for frontend chart rendering.
+            # The 'text' field preserves the LLM-visible digest; 'data' carries columns/rows
+            # for the DataSourceResultRenderer component.
+            if outcome.ok and outcome.columns:
+                envelope = {
+                    "octop_ui": {"renderer": "data-source-result", "version": 1},
+                    "data": {
+                        "columns": list(outcome.columns),
+                        "rows": [list(row) for row in outcome.rows],
+                        "row_count": outcome.row_count,
+                        "status": outcome.status,
+                        "generated_sql": outcome.executed_sql,
+                        "spilled": outcome.spilled,
+                    },
+                    "text": str(outcome.text),
+                }
+                return json.dumps(envelope, ensure_ascii=False)
             return str(outcome.text)
         except LookupError:
             return not_found_text(_safe_locale())

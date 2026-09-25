@@ -306,6 +306,15 @@
       "callback_success": "Authorization complete. You may close this window."
     }
   },
+  "api_connector": {
+    "display_name": "API Connector",
+    "error_config": "API connector configuration error. Please contact the administrator.",
+    "error_auth_failed": "API authentication failed. Please check the connector credentials.",
+    "error_unavailable": "The business system is temporarily unavailable. Please try again later.",
+    "error_business": "Business system returned error: {status_code}",
+    "test_reachable": "Connection successful (HTTP {status_code})",
+    "test_unreachable": "Connection failed: {error}"
+  },
   "errors": {
     "AUTH_FAILED": "Authentication failed.",
     "TOKEN_EXPIRED": "Session expired. Please sign in again.",

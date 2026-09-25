@@ -5776,5 +5776,20 @@
     "updateReady": "新版本已就绪",
     "updateNow": "立即更新",
     "later": "稍后更新"
+  },
+  "dataSource": {
+    "chartType": {
+      "table": "表格",
+      "bar": "柱状图",
+      "line": "折线图",
+      "pie": "饼图"
+    },
+    "status": {
+      "ok": "查询成功"
+    },
+    "rowCount": "{{count}} 行",
+    "rowCount_plural": "{{count}} 行",
+    "spilled": "（仅显示部分数据）",
+    "generatedSql": "生成的 SQL"
   }
 }

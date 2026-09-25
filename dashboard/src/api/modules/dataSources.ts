@@ -199,9 +199,9 @@ export const dataSourcesApi = {
     }),
 
   getAllowlist: (id: string) =>
-    request<{ tables: AllowedTable[]; max_tables: number }>(`/data-sources/${id}/allowlist`).then(
-      (res) => res.tables || [],
-    ),
+    request<{ tables: AllowedTable[]; max_tables: number }>(
+      `/data-sources/${id}/allowlist`,
+    ).then((res) => res.tables || []),
 
   updateAnnotations: (id: string, annotations: Annotation[]) =>
     request<Annotation[]>(`/data-sources/${id}/annotations`, {
@@ -210,9 +210,9 @@ export const dataSourcesApi = {
     }),
 
   getAnnotations: (id: string) =>
-    request<{ annotations: Annotation[] }>(`/data-sources/${id}/annotations`).then(
-      (res) => res.annotations || [],
-    ),
+    request<{ annotations: Annotation[] }>(
+      `/data-sources/${id}/annotations`,
+    ).then((res) => res.annotations || []),
 
   queryPreview: (id: string, naturalQuery: string) =>
     request<QueryPreviewResult>(`/data-sources/${id}/query`, {

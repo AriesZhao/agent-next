@@ -122,9 +122,7 @@ def prepare_read_only(conn: Any, cfg: ConnectionConfig, timeout_ms: int) -> None
             from psycopg import sql as psql
 
             cur.execute(
-                psql.SQL("SET statement_timeout = {}").format(
-                    psql.Literal(int(timeout_ms))
-                )
+                psql.SQL("SET statement_timeout = {}").format(psql.Literal(int(timeout_ms)))
             )
             cur.execute("BEGIN READ ONLY")
         else:
@@ -140,11 +138,7 @@ def apply_schema(conn: Any, cfg: ConnectionConfig) -> None:
 
         cur = conn.cursor()
         try:
-            cur.execute(
-                psql.SQL("SET search_path = {}").format(
-                    psql.Identifier(cfg.schema)
-                )
-            )
+            cur.execute(psql.SQL("SET search_path = {}").format(psql.Identifier(cfg.schema)))
         finally:
             cur.close()
 

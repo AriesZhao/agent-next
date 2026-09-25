@@ -5620,5 +5620,20 @@
     "updateReady": "A new version is ready",
     "updateNow": "Update now",
     "later": "Later"
+  },
+  "dataSource": {
+    "chartType": {
+      "table": "Table",
+      "bar": "Bar",
+      "line": "Line",
+      "pie": "Pie"
+    },
+    "status": {
+      "ok": "Success"
+    },
+    "rowCount": "{{count}} rows",
+    "rowCount_plural": "{{count}} rows",
+    "spilled": "(partial data shown)",
+    "generatedSql": "Generated SQL"
   }
 }

@@ -9,6 +9,19 @@ from pathlib import Path
 from typing import Any
 
 from octop.config import OctopConfig
+from octop.infra.connectors.api_connector import (
+    API_CONNECTOR_DISPLAY_NAME,
+    API_CONNECTOR_KIND,
+    connector_enabled,
+    connector_mcp_server_name,
+    expand_api_connector_instances,
+    extract_connectors,
+    redact_connector_for_api,
+    wrap_connectors,
+)
+from octop.infra.connectors.api_connector.schema import (
+    validate_connectors_map,
+)
 from octop.infra.connectors.builder import build_http_mcp_spec, mcp_server_name
 from octop.infra.connectors.catalog import get_catalog_entry
 from octop.infra.connectors.crypto import decrypt_credentials, encrypt_credentials
@@ -326,12 +339,113 @@ class ConnectorService:
     ) -> dict[str, Any]:
         return self.patch_custom_server(user_id, server_name, default_open=default_open)
 
+    # --- API Connector CRUD ---
+
+    def _is_api_connector_kind(self, kind: str) -> bool:
+        return kind == API_CONNECTOR_KIND
+
+    def get_api_connectors(self, user_id: int) -> dict[str, Any]:
+        row = self._repo.get_by_user_kind(user_id, API_CONNECTOR_KIND)
+        if row is None or not row.has_credentials:
+            return {}
+        return extract_connectors(self.decrypt(row.instance_id))
+
+    def get_api_connectors_for_api(self, user_id: int) -> dict[str, Any]:
+        connectors = self.get_api_connectors(user_id)
+        return {
+            name: redact_connector_for_api(name, spec)
+            for name, spec in connectors.items()
+            if isinstance(spec, dict)
+        }
+
+    def get_api_connector(self, user_id: int, name: str) -> dict[str, Any] | None:
+        connectors = self.get_api_connectors(user_id)
+        spec = connectors.get(name)
+        if spec is None:
+            return None
+        return redact_connector_for_api(name, spec)
+
+    def put_api_connectors(self, user_id: int, connectors: dict[str, Any]) -> dict[str, Any]:
+        return self._save_api_connectors(user_id, connectors)
+
+    def put_api_connector(self, user_id: int, name: str, spec: dict[str, Any]) -> dict[str, Any]:
+        existing = self.get_api_connectors(user_id)
+        existing[name] = spec
+        return self._save_api_connectors(user_id, existing)
+
+    def _save_api_connectors(self, user_id: int, connectors: dict[str, Any]) -> dict[str, Any]:
+        normalized = validate_connectors_map(
+            connectors,
+            reserved_names=self.reserved_builtin_mcp_names(user_id),
+        )
+        display_names: set[str] = set()
+        for name, spec in normalized.items():
+            dn = str(spec.get("display_name") or name).strip()
+            if dn in display_names or self._repo.name_exists(user_id, dn):
+                raise ConnectorNameTakenError(dn)
+            display_names.add(dn)
+        row = self._repo.get_by_user_kind(user_id, API_CONNECTOR_KIND)
+        if not normalized:
+            if row is not None:
+                self._repo.delete(row.instance_id)
+            return {}
+        if row is None:
+            instance_id = new_ulid()
+            self._repo.create(
+                instance_id=instance_id,
+                user_id=user_id,
+                kind=API_CONNECTOR_KIND,
+                display_name=API_CONNECTOR_DISPLAY_NAME,
+                mcp_server_name=mcp_server_name(API_CONNECTOR_KIND, instance_id),
+            )
+        else:
+            instance_id = row.instance_id
+        self.encrypt_and_store(
+            instance_id=instance_id,
+            payload=wrap_connectors(normalized),
+        )
+        return normalized
+
+    def patch_api_connector(
+        self,
+        user_id: int,
+        connector_name: str,
+        *,
+        enabled: bool | None = None,
+        default_open: bool | None = None,
+        shared: bool | None = None,
+        display_name: str | None = None,
+    ) -> dict[str, Any]:
+        connectors = dict(self.get_api_connectors(user_id))
+        if connector_name not in connectors:
+            raise KeyError(connector_name)
+        spec = dict(connectors[connector_name])
+        if enabled is not None:
+            spec["enabled"] = enabled
+            if not enabled:
+                spec.pop("default_open", None)
+        if default_open is not None:
+            spec["default_open"] = bool(default_open)
+        if shared is not None:
+            spec["shared"] = bool(shared)
+        if display_name is not None:
+            spec["display_name"] = display_name
+        connectors[connector_name] = spec
+        return self._save_api_connectors(user_id, connectors)
+
+    def delete_api_connector(self, user_id: int, connector_name: str) -> None:
+        connectors = dict(self.get_api_connectors(user_id))
+        if connector_name not in connectors:
+            raise KeyError(connector_name)
+        del connectors[connector_name]
+        self._save_api_connectors(user_id, connectors)
+
     def list_instances_for_api(self, user_id: int) -> list[dict[str, Any]]:
-        """Built-in rows + expanded custom servers (hide parent custom-mcp row)."""
+        """Built-in rows + expanded custom servers + expanded api connectors."""
         out: list[dict[str, Any]] = []
         custom_row = self._repo.get_by_user_kind(user_id, CUSTOM_MCP_KIND)
         for inst in self._repo.list_visible(user_id):
-            if is_custom_mcp_kind(inst.kind):
+            if is_custom_mcp_kind(inst.kind) or self._is_api_connector_kind(inst.kind):
                 continue
             config = ConnectorRepo.parse_config_json(inst)
             out.append(
@@ -367,6 +481,24 @@ class ConnectorService:
                     shared_view=True,
                 )
             )
+        api_row = self._repo.get_by_user_kind(user_id, API_CONNECTOR_KIND)
+        if api_row is not None and api_row.has_credentials:
+            out.extend(
+                expand_api_connector_instances(
+                    parent=api_row,
+                    connectors=extract_connectors(self.decrypt(api_row.instance_id)),
+                )
+            )
+        for parent in self._repo.list_by_kind(API_CONNECTOR_KIND):
+            if parent.user_id == user_id or not parent.has_credentials:
+                continue
+            out.extend(
+                expand_api_connector_instances(
+                    parent=parent,
+                    connectors=extract_connectors(self.decrypt(parent.instance_id)),
+                    shared_view=True,
+                )
+            )
         for item in out:
             item.setdefault("owner_user_id", user_id)
             item.setdefault("shared", False)
@@ -375,7 +507,7 @@ class ConnectorService:
     def list_active_mcp_server_names(self, user_id: int) -> list[str]:
         names: list[str] = []
         for inst in self._repo.list_visible(user_id):
-            if is_custom_mcp_kind(inst.kind):
+            if is_custom_mcp_kind(inst.kind) or self._is_api_connector_kind(inst.kind):
                 continue
             if inst.status != "active" or not inst.has_credentials:
                 continue
@@ -389,13 +521,26 @@ class ConnectorService:
             for name, spec in extract_servers(self.decrypt(parent.instance_id)).items():
                 if isinstance(spec, dict) and spec.get("shared") is True and server_enabled(spec):
                     names.append(shared_mcp_server_name(parent.instance_id, name))
+        for name, spec in self.get_api_connectors(user_id).items():
+            if isinstance(spec, dict) and connector_enabled(spec):
+                names.append(connector_mcp_server_name(name))
+        for parent in self._repo.list_by_kind(API_CONNECTOR_KIND):
+            if parent.user_id == user_id or not parent.has_credentials:
+                continue
+            for name, spec in extract_connectors(self.decrypt(parent.instance_id)).items():
+                if (
+                    isinstance(spec, dict)
+                    and spec.get("shared") is True
+                    and connector_enabled(spec)
+                ):
+                    names.append(connector_mcp_server_name(name))
         return sorted(names)
 
     def list_default_open_mcp_server_names(self, user_id: int) -> list[str]:
         """Active connectors marked default_open (dashboard + all IM channels)."""
         names: list[str] = []
         for inst in self._repo.list_by_user(user_id):
-            if is_custom_mcp_kind(inst.kind):
+            if is_custom_mcp_kind(inst.kind) or self._is_api_connector_kind(inst.kind):
                 continue
             if inst.status != "active" or not inst.has_credentials:
                 continue
@@ -406,6 +551,11 @@ class ConnectorService:
                 continue
             if spec.get("default_open") is True:
                 names.append(name)
+        for name, spec in self.get_api_connectors(user_id).items():
+            if not isinstance(spec, dict) or not connector_enabled(spec):
+                continue
+            if spec.get("default_open", True):
+                names.append(connector_mcp_server_name(name))
         return names
 
     def merge_turn_mcp_servers(
