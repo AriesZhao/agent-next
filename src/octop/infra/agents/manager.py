@@ -1490,13 +1490,24 @@ class AgentManager:
                 agent.config.mcp_server_configs[name] = dict(spec)
 
         gateway_missing: list[str] = []
+        api_connector_missing: list[str] = []
         if builtin_missing and uid is not None:
             gateway_names = gateway_mcp_server_names(
                 connector_repo=self._repos.connector_repo,
                 user_id=uid,
             )
+            from octop.infra.connectors.api_connector import (
+                connector_mcp_server_name,
+            )
+
+            api_names: set[str] = set()
+            for name in self._connector_svc.get_api_connectors(uid):
+                api_names.add(connector_mcp_server_name(name))
             gateway_missing = [n for n in builtin_missing if n in gateway_names]
-            builtin_missing = [n for n in builtin_missing if n not in gateway_names]
+            api_connector_missing = [n for n in builtin_missing if n in api_names]
+            builtin_missing = [
+                n for n in builtin_missing if n not in gateway_names and n not in api_names
+            ]
 
         if gateway_missing and uid is not None:
             await self._attach_gateway_tools(
@@ -1505,6 +1516,20 @@ class AgentManager:
                 user_id=uid,
                 server_names=gateway_missing,
             )
+
+        if api_connector_missing and uid is not None:
+            from octop.infra.connectors.builder import (
+                inject_api_connector_tools,
+            )
+
+            inject_api_connector_tools(
+                agent,
+                svc=self._connector_svc,
+                user_id=uid,
+                agent_id=agent_id,
+            )
+            for name in api_connector_missing:
+                agent.config.mcp_server_configs.setdefault(name, {})
 
         if builtin_missing:
             logger.info(

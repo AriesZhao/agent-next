@@ -666,6 +666,7 @@ def inject_api_connector_tools(
         tools = build_api_connector_langchain_tools(
             connector_name=name,
             connector_def=spec,
+            mcp_server_name=mcp_name,
         )
         extra.extend(tools)
 

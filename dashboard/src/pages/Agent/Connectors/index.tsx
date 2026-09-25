@@ -46,6 +46,7 @@ import {
 import { ConnectorCard } from "./ConnectorCard";
 import { ConnectorInstanceCard } from "./ConnectorInstanceCard";
 import { CustomMcpTab } from "./CustomMcpTab";
+import { ApiConnectorTab } from "./ApiConnectorTab";
 import {
   INLINE_CREDENTIAL_GUIDE_KINDS,
   HIDE_INLINE_FIELD_GUIDE_KINDS,
@@ -2102,12 +2103,13 @@ function ConnectorConfigDrawer({
   );
 }
 
-type ConnectorTab = "enabled" | "builtin" | "custom";
+type ConnectorTab = "enabled" | "builtin" | "custom" | "api";
 
 const CONNECTOR_TABS: TabBarItem<ConnectorTab>[] = [
   { key: "enabled", labelKey: "connectors.tabEnabled", icon: Link2 },
   { key: "builtin", labelKey: "connectors.tabBuiltin", icon: Blocks },
   { key: "custom", labelKey: "connectors.tabCustom", icon: Wrench },
+  { key: "api", labelKey: "connectors.tabApi", icon: Plug },
 ];
 
 export default function ConnectorsPage() {
@@ -2204,7 +2206,9 @@ export default function ConnectorsPage() {
         />
       }
     >
-      {activeTab === "custom" ? (
+      {activeTab === "api" ? (
+        <ApiConnectorTab />
+      ) : activeTab === "custom" ? (
         <CustomMcpTab focusServerName={customFocusServerName} />
       ) : activeTab === "enabled" ? (
         loading ? (

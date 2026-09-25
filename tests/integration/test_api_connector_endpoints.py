@@ -4,9 +4,6 @@ from __future__ import annotations
 
 import pytest
 
-from tests.support.app import octop_client
-from tests.support.auth import auth_header, bootstrap_admin
-
 
 @pytest.fixture
 async def env(env_with_agent):

@@ -13,16 +13,18 @@ def build_api_connector_langchain_tools(
     *,
     connector_name: str,
     connector_def: dict[str, Any],
+    mcp_server_name: str | None = None,
     http_client: Any | None = None,
 ) -> list[Any]:
     from langchain_core.tools import StructuredTool
 
     out: list[Any] = []
     display_name = connector_def.get("display_name", connector_name)
+    name_prefix = mcp_server_name or connector_name
 
     for tool_def in connector_def.get("tools", []):
         raw_name = tool_def["name"]
-        fqn = f"{connector_name}__{raw_name}"
+        fqn = f"{name_prefix}__{raw_name}"
         lc_name = sanitize_llm_tool_name(fqn)
         description = f"[{display_name}] {tool_def.get('description', raw_name)}"
 
