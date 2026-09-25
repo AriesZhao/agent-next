@@ -393,6 +393,14 @@
     "KNOWLEDGE_UNSUPPORTED_TYPE": "This document type is not supported for knowledge bases.",
     "KNOWLEDGE_NAME_TAKEN": "You already have a knowledge base with this name.",
     "KNOWLEDGE_NAME_INVALID": "Invalid name.",
+    "DATA_SOURCE_NOT_FOUND": "Data source not found.",
+    "DATA_SOURCE_FORBIDDEN": "You do not have access to this data source.",
+    "DATA_SOURCE_LIMIT": "You can own at most 20 data sources.",
+    "DATA_SOURCE_NAME_TAKEN": "You already have a data source with this name.",
+    "DATA_SOURCE_NAME_INVALID": "Invalid data source name.",
+    "DATA_SOURCE_ENGINE_UNSUPPORTED": "This database engine is not supported.",
+    "DATA_SOURCE_MODEL_NOT_CONFIGURED": "The data-source query model is not configured. An administrator must set it in settings.",
+    "DATA_SOURCE_CONNECTION_FAILED": "The data source could not be reached. Please check the connection settings and try again.",
     "AVATAR_INVALID": "Avatar must be a PNG, JPEG, WebP, or GIF image.",
     "AVATAR_TOO_LARGE": "Avatar exceeds the 5 MB size limit.",
     "INVITE_INVALID": "This invite code is invalid.",
@@ -504,6 +512,7 @@
     "cronjob_delete": "Delete cron job",
     "cronjob_run_now": "Run cron job now",
     "search_knowledge": "Search knowledge base",
+    "query_data_source": "Query data source",
     "agent_list": "List agents",
     "ask_agent": "Ask agent",
     "call_agent": "Call agent",
@@ -712,6 +721,45 @@
       },
       "UnauthorizedOperation": "This Tencent Cloud account is not authorized for this voice API.",
       "RequestLimitExceeded": "Tencent Cloud rate-limited this request. Retry in a moment."
+    }
+  },
+  "data_source": {
+    "error": {
+      "blocked": "This query was blocked by the data source's safety policy: only read-only queries against authorized tables are allowed. Try a narrower question or ask the owner to adjust the authorization.",
+      "blocked_owner": "Blocked by the data source safety policy: {detail}.",
+      "connection": "The data source is temporarily unavailable (connection / permissions / timeout). Please retry later or check its configuration.",
+      "empty": "The query succeeded but returned no matching data.",
+      "invalid_sql_owner": "Could not produce a valid query. Attempted SQL: {sql}. Try rephrasing or confirm the field definitions.",
+      "invalid_sql_non_owner": "Could not produce a result. Please try a different phrasing.",
+      "model_not_configured": "The data source query model is not configured yet. Ask an administrator to set it in Settings."
+    },
+    "guard": {
+      "table_not_allowed": "references an unauthorized table",
+      "column_not_allowed": "references an unauthorized column",
+      "system_schema": "accesses a system catalog",
+      "dangerous_function": "uses a disallowed function",
+      "not_select": "is not a read-only SELECT query",
+      "multi_statement": "contains multiple statements",
+      "forbidden_export": "tries to export data to a file",
+      "unparseable": "could not be parsed as a valid query",
+      "empty": "is empty",
+      "no_allowed_table": "does not read any authorized table",
+      "unrenderable": "could not be safely rewritten"
+    },
+    "render": {
+      "total_rows": "total {n} rows",
+      "total_rows_truncated": "total \u2265{n} rows",
+      "truncated_suffix": "(row limit reached, may be truncated)",
+      "aggregates": "[numeric summary] {items}",
+      "aggregates_none": "[numeric summary] none",
+      "sample": "[sample]",
+      "sample_unordered": "[sample \u2014 unordered, not necessarily the first N rows]",
+      "spilled": "[large result \u2014 full data written to file: {path}]"
+    },
+    "query": {
+      "generated_sql": "Auto-generated SQL (please verify against your definitions): {sql}",
+      "no_selection": "No data sources are attached this turn.",
+      "not_found": "The requested data source is not available this turn."
     }
   }
 }

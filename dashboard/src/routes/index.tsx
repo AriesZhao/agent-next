@@ -7,6 +7,7 @@ const CronJobsPage = lazy(() => import("../pages/Control/CronJobs"));
 const ConnectorsPage = lazy(() => import("../pages/Agent/Connectors"));
 const SkillPackagesPage = lazy(() => import("../pages/SkillPackages"));
 const KnowledgeBasesPage = lazy(() => import("../pages/KnowledgeBases"));
+const DataSourcesPage = lazy(() => import("../pages/DataSources"));
 const PersonalizationPage = lazy(
   () => import("../pages/Agent/Personalization"),
 );
@@ -53,6 +54,7 @@ export const pathToKey: Record<string, string> = {
   "/connectors": "connectors",
   "/skill-packages": "skill-packages",
   "/knowledge-bases": "knowledge-bases",
+  "/data-sources": "data-sources",
   "/personalization": "personalization",
   "/personalization/skills": "personalization",
   "/personalization/tools": "personalization",
@@ -153,6 +155,7 @@ export const routeConfigs: RouteConfig[] = [
   { path: "/connectors", element: <ConnectorsPage /> },
   { path: "/skill-packages", element: <SkillPackagesPage /> },
   { path: "/knowledge-bases", element: <KnowledgeBasesPage /> },
+  { path: "/data-sources", element: <DataSourcesPage /> },
   {
     path: "/personalization/acp",
     element: <RedirectPreserveSearch to="/acp" />,

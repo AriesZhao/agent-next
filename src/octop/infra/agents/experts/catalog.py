@@ -803,6 +803,7 @@ def build_create_spec_from_expert(
     published_expert_id: str | None = None,
     skill_package_ids: list[str] | None = None,
     knowledge_base_ids: list[str] | None = None,
+    data_source_ids: list[str] | None = None,
     mcp_servers: list[str] | None = None,
 ) -> AgentCreateSpec:
     """Build :class:`AgentCreateSpec` for ``AgentManager.create`` from a catalog entry."""
@@ -832,6 +833,7 @@ def build_create_spec_from_expert(
     extra.pop("welcome_message", None)
     extra.pop("skill_package_ids", None)
     extra.pop("knowledge_base_ids", None)
+    extra.pop("data_source_ids", None)
     extra.pop("mcp_servers", None)
     return AgentCreateSpec(
         agent_id=agent_id,
@@ -848,6 +850,7 @@ def build_create_spec_from_expert(
         color=color or extra_color or expert.summary.color,
         skill_package_ids=skill_package_ids,
         knowledge_base_ids=knowledge_base_ids,
+        data_source_ids=data_source_ids,
         mcp_servers=mcp_servers,
         published_expert_id=published_expert_id,
         welcome_message=welcome_message,

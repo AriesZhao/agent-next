@@ -46,6 +46,7 @@ class AgentRow:
     welcome_message: str | None = None
     knowledge_base_ids: str | None = None
     mcp_servers: str | None = None
+    data_source_ids: str | None = None
 
     @classmethod
     def from_row(cls, r: DbRow) -> AgentRow:
@@ -79,6 +80,7 @@ class AgentRow:
             welcome_message=_opt_str(r, "welcome_message"),
             knowledge_base_ids=_opt_str(r, "knowledge_base_ids"),
             mcp_servers=_opt_str(r, "mcp_servers"),
+            data_source_ids=_opt_str(r, "data_source_ids"),
         )
 
 
@@ -107,6 +109,7 @@ class AgentRepo:
         welcome_message: str | None = None,
         knowledge_base_ids: str | None = None,
         mcp_servers: str | None = None,
+        data_source_ids: str | None = None,
     ) -> str:
         ts = now_ts()
         with self._db.transaction() as conn:
@@ -115,8 +118,8 @@ class AgentRepo:
                 "persona_mbti, default_model, system_prompt, enabled, config_json, icon, "
                 "template_name, color, icon_name, icon_url, skill_package_ids, "
                 "published_expert_id, welcome_message, knowledge_base_ids, mcp_servers, "
-                "created_at, updated_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "data_source_ids, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     agent_id,
                     user_id,
@@ -136,6 +139,7 @@ class AgentRepo:
                     welcome_message,
                     knowledge_base_ids,
                     mcp_servers,
+                    data_source_ids,
                     ts,
                     ts,
                 ),
@@ -218,6 +222,7 @@ class AgentRepo:
         welcome_message: str | None | object = UNSET,
         knowledge_base_ids: str | None | object = UNSET,
         mcp_servers: str | None | object = UNSET,
+        data_source_ids: str | None | object = UNSET,
     ) -> None:
         fields, params = optional_updates(
             [
@@ -237,6 +242,7 @@ class AgentRepo:
                 ("welcome_message", welcome_message),
                 ("knowledge_base_ids", knowledge_base_ids),
                 ("mcp_servers", mcp_servers),
+                ("data_source_ids", data_source_ids),
             ]
         )
         if not fields:

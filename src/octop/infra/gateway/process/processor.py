@@ -23,6 +23,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 from octop.i18n.domains.stream import format_stream_error
 from octop.infra.agents.profile import parse_config_json
 from octop.infra.agents.providers.reasoning import reasoning_request_parameters
+from octop.infra.data_sources.default_open import stamp_turn_data_source_config
 from octop.infra.errors import OctopError
 from octop.infra.gateway.hitl.coordinator import (
     HitlAnswerOutcome,
@@ -113,6 +114,7 @@ class GlobalProcessor:
         user_repo: UserRepo,
         connector_repo: ConnectorRepo,
         knowledge_repo: Any | None = None,
+        data_source_repo: Any | None = None,
         settings_repo: Any | None = None,
         provider_repo: Any | None = None,
         dispatcher: SlashDispatcher,
@@ -129,6 +131,7 @@ class GlobalProcessor:
         self._agent_repo = agent_repo
         self._user_repo = user_repo
         self._connector_repo = connector_repo
+        self._data_source_repo = data_source_repo
         self._knowledge_services = (
             SimpleNamespace(
                 knowledge_repo=knowledge_repo,
@@ -852,6 +855,14 @@ class GlobalProcessor:
             locale=locale,
             agent_id=agent_id,
         )
+        self._attach_turn_data_source_config(
+            request,
+            user_id=user_id,
+            is_admin=False,
+            explicit_ids=None,
+            locale=locale,
+            agent_id=agent_id,
+        )
         if mcp_servers:
             request["mcp_servers"] = mcp_servers
 
@@ -1295,6 +1306,16 @@ class GlobalProcessor:
             locale=locale,
             agent_id=agent_id,
         )
+        self._attach_turn_data_source_config(
+            request,
+            user_id=user_id,
+            is_admin=bool(meta.get("user_is_admin")),
+            explicit_ids=meta.get("data_source_ids")
+            if isinstance(meta.get("data_source_ids"), list)
+            else None,
+            locale=locale,
+            agent_id=agent_id,
+        )
 
         if mcp_servers:
             request["mcp_servers"] = mcp_servers
@@ -1324,6 +1345,35 @@ class GlobalProcessor:
         stamp_turn_knowledge_config(
             request,
             visible_bases=bases,
+            explicit_ids=explicit_ids,
+            owner_user_id=user_id,
+            extra_ids=extra_ids,
+            is_admin=is_admin,
+            locale=locale,
+        )
+
+    def _attach_turn_data_source_config(
+        self,
+        request: dict[str, Any],
+        *,
+        user_id: int,
+        is_admin: bool,
+        explicit_ids: list[str] | None,
+        locale: str,
+        agent_id: str | None = None,
+    ) -> None:
+        """Expose selected data-source ids for the query_data_source tool."""
+        if self._data_source_repo is None:
+            return
+        sources = (
+            self._data_source_repo.list_all()
+            if is_admin
+            else self._data_source_repo.list_visible(user_id)
+        )
+        extra_ids = self._agent_manager.default_data_source_ids(agent_id) if agent_id else None
+        stamp_turn_data_source_config(
+            request,
+            visible_sources=sources,
             explicit_ids=explicit_ids,
             owner_user_id=user_id,
             extra_ids=extra_ids,

@@ -20,6 +20,7 @@ PROFILE_CONFIG_KEYS = frozenset(
         "welcome_message",
         "knowledge_base_ids",
         "mcp_servers",
+        "data_source_ids",
     }
 )
 
@@ -127,6 +128,11 @@ def extract_profile_from_config(cfg: dict[str, Any]) -> dict[str, Any]:
     mcp_servers = cfg.get("mcp_servers")
     if isinstance(mcp_servers, list):
         out["mcp_servers"] = dump_id_list([str(item) for item in mcp_servers if str(item).strip()])
+    data_source_ids = cfg.get("data_source_ids")
+    if isinstance(data_source_ids, list):
+        out["data_source_ids"] = dump_id_list(
+            [str(item) for item in data_source_ids if str(item).strip()]
+        )
     welcome = _localized_text(cfg.get("welcome_message"))
     if welcome is not None:
         out["welcome_message"] = welcome

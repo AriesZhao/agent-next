@@ -83,6 +83,10 @@ OPENAPI_TAGS: list[dict[str, str]] = [
         "description": "Private, shareable document knowledge bases and their indexing capability.",
     },
     {
+        "name": "data_sources",
+        "description": "Structured database sources queried in natural language (NL2SQL).",
+    },
+    {
         "name": "internal-mcp",
         "description": "Internal MCP gateway used by harness agents (no dashboard auth).",
     },

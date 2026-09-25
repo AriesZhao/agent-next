@@ -393,6 +393,14 @@
     "KNOWLEDGE_UNSUPPORTED_TYPE": "知识库不支持此文档类型。",
     "KNOWLEDGE_NAME_TAKEN": "您已有同名知识库。",
     "KNOWLEDGE_NAME_INVALID": "名称无效。",
+    "DATA_SOURCE_NOT_FOUND": "未找到数据源。",
+    "DATA_SOURCE_FORBIDDEN": "您无权访问此数据源。",
+    "DATA_SOURCE_LIMIT": "您最多可拥有 20 个数据源。",
+    "DATA_SOURCE_NAME_TAKEN": "您已有同名数据源。",
+    "DATA_SOURCE_NAME_INVALID": "数据源名称无效。",
+    "DATA_SOURCE_ENGINE_UNSUPPORTED": "不支持此数据库引擎。",
+    "DATA_SOURCE_MODEL_NOT_CONFIGURED": "数据源查询模型尚未配置，请管理员在设置中配置。",
+    "DATA_SOURCE_CONNECTION_FAILED": "无法连接数据源，请检查连接设置后重试。",
     "AVATAR_INVALID": "头像须为 PNG、JPEG、WebP 或 GIF 图片。",
     "AVATAR_TOO_LARGE": "头像超过 5 MB 大小限制。",
     "INVITE_INVALID": "邀请码无效。",
@@ -504,6 +512,7 @@
     "cronjob_delete": "删除定时任务",
     "cronjob_run_now": "立即执行定时任务",
     "search_knowledge": "检索知识库",
+    "query_data_source": "查询数据源",
     "agent_list": "列出 Agent",
     "ask_agent": "咨询 Agent",
     "call_agent": "调用 Agent",
@@ -712,6 +721,45 @@
       },
       "UnauthorizedOperation": "当前腾讯云账号没有该语音接口的访问权限。",
       "RequestLimitExceeded": "腾讯云请求过于频繁，请稍后再试。"
+    }
+  },
+  "data_source": {
+    "error": {
+      "blocked": "该查询已被数据源安全策略拦截：仅允许对已授权表进行只读查询。请缩小问题范围，或联系所有者调整授权。",
+      "blocked_owner": "已被数据源安全策略拦截：{detail}。",
+      "connection": "数据源暂时无法访问（连接/权限/超时），请稍后重试或检查配置。",
+      "empty": "查询成功，但没有匹配的数据。",
+      "invalid_sql_owner": "未能生成有效查询。尝试的 SQL：{sql}。请换种问法或确认字段口径。",
+      "invalid_sql_non_owner": "未能得到结果，请换一种问法。",
+      "model_not_configured": "数据源查询模型尚未配置，请管理员在设置中指定。"
+    },
+    "guard": {
+      "table_not_allowed": "引用了未授权的表",
+      "column_not_allowed": "引用了未授权的列",
+      "system_schema": "访问了系统目录",
+      "dangerous_function": "使用了不允许的函数",
+      "not_select": "不是只读 SELECT 查询",
+      "multi_statement": "包含多条语句",
+      "forbidden_export": "试图将数据导出到文件",
+      "unparseable": "无法解析为有效查询",
+      "empty": "为空",
+      "no_allowed_table": "未读取任何已授权的表",
+      "unrenderable": "无法安全重写"
+    },
+    "render": {
+      "total_rows": "共 {n} 行",
+      "total_rows_truncated": "共 ≥{n} 行",
+      "truncated_suffix": "（结果已达上限，可能截断）",
+      "aggregates": "[数值聚合] {items}",
+      "aggregates_none": "[数值聚合] 无",
+      "sample": "[样例]",
+      "sample_unordered": "[样例（未排序，仅为样例，非前 N 行）]",
+      "spilled": "[结果较大，完整数据已写入文件：{path}]"
+    },
+    "query": {
+      "generated_sql": "自动生成查询（请核对口径）：{sql}",
+      "no_selection": "本轮未挂载任何数据源。",
+      "not_found": "本轮请求的数据源不可用。"
     }
   }
 }
