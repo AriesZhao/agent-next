@@ -1,0 +1,43 @@
+{
+  "customers": [
+    {"id": "cust_001", "name": "Alice", "email": "alice@example.com"},
+    {"id": "cust_002", "name": "Bob", "email": "bob@example.com"},
+    {"id": "cust_003", "name": "Charlie", "email": "charlie@example.com"}
+  ],
+  "products": [
+    {"id": "prod_001", "name": "Widget A", "price": 29.99, "in_stock": true, "stock_count": 150},
+    {"id": "prod_002", "name": "Widget B", "price": 49.99, "in_stock": true, "stock_count": 42},
+    {"id": "prod_003", "name": "Gadget C", "price": 99.00, "in_stock": false, "stock_count": 0},
+    {"id": "prod_004", "name": "Gadget D", "price": 149.50, "in_stock": true, "stock_count": 8}
+  ],
+  "orders": [
+    {
+      "id": "ord_001",
+      "customer": "Alice",
+      "items": [{"product_id": "prod_001", "qty": 2}],
+      "amount": 59.98,
+      "status": "completed"
+    },
+    {
+      "id": "ord_002",
+      "customer": "Bob",
+      "items": [{"product_id": "prod_002", "qty": 1}],
+      "amount": 49.99,
+      "status": "pending"
+    },
+    {
+      "id": "ord_003",
+      "customer": "Alice",
+      "items": [{"product_id": "prod_001", "qty": 1}, {"product_id": "prod_002", "qty": 1}],
+      "amount": 79.98,
+      "status": "shipped"
+    },
+    {
+      "id": "ord_004",
+      "customer": "Charlie",
+      "items": [{"product_id": "prod_004", "qty": 3}],
+      "amount": 448.50,
+      "status": "pending"
+    }
+  ]
+}
