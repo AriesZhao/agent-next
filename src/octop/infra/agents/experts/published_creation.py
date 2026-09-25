@@ -43,6 +43,7 @@ class PublishedExpertInstallOptions:
     backend: dict[str, Any] | None = None
     skill_package_ids: list[str] | None = None
     knowledge_base_ids: list[str] | None = None
+    data_source_ids: list[str] | None = None
     mcp_servers: list[str] | None = None
     color: str | None = None
     agent_id: str | None = None
@@ -362,6 +363,7 @@ async def install_published_expert(
             color=options.color or row.color or None,
             skill_package_ids=package_ids,
             knowledge_base_ids=options.knowledge_base_ids,
+            data_source_ids=options.data_source_ids,
             mcp_servers=options.mcp_servers,
             published_expert_id=row.id,
             welcome_message=options.welcome_message,

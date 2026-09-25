@@ -253,31 +253,47 @@ export default function PwaInstallPrompt({
   );
 }
 
-// ─── Auto-prompt for iOS (mounted in MainLayout) ──────────────────────────────
+// ─── Auto-prompt for all platforms (mounted in MainLayout) ──────────────────────
 
 /**
- * On iOS, automatically shows the guide sheet after a short delay on
- * the first visit. Covers Chat mobile where the global Header is hidden.
+ * Automatically prompts for install after a short delay on first visit.
+ * - iOS: shows the step-by-step guide sheet
+ * - Desktop/Android: triggers the native install dialog via beforeinstallprompt
  */
 export function PwaAutoPrompt() {
-  const [show, setShow] = useState(false);
+  const [showIosGuide, setShowIosGuide] = useState(false);
+  const [ios] = useState(() => isIosDevice());
 
   useEffect(() => {
-    if (!isIosDevice() || isStandalone() || isDesktopShell()) return;
+    if (isStandalone() || isDesktopShell()) return;
     if (
       localStorage.getItem(DISMISSED_KEY) ||
       localStorage.getItem(IOS_SHOWN_KEY)
     )
       return;
-    const t = setTimeout(() => setShow(true), 4000);
-    return () => clearTimeout(t);
-  }, []);
 
-  const handleClose = () => {
+    const t = setTimeout(async () => {
+      if (ios) {
+        setShowIosGuide(true);
+      } else {
+        // Desktop/Android: wait for prompt event then trigger native install dialog
+        const prompt = await waitForInstallPrompt(4000);
+        if (!prompt) return;
+        const outcome = await triggerInstall();
+        if (outcome === "accepted") return;
+        if (outcome === "dismissed") {
+          localStorage.setItem(DISMISSED_KEY, "1");
+        }
+      }
+    }, 4000);
+    return () => clearTimeout(t);
+  }, [ios]);
+
+  const handleCloseIosGuide = () => {
     localStorage.setItem(IOS_SHOWN_KEY, "1");
-    setShow(false);
+    setShowIosGuide(false);
   };
 
-  if (!show) return null;
-  return <IosGuide onClose={handleClose} />;
+  if (ios && showIosGuide) return <IosGuide onClose={handleCloseIosGuide} />;
+  return null;
 }

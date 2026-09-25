@@ -23,6 +23,8 @@ HITL_TOOL_EXCLUDE: frozenset[str] = frozenset(
         "memory_get",
         # Knowledge base
         "search_knowledge",
+        # Data source (read-only NL2SQL query)
+        "query_data_source",
         # Cron
         "cronjob_list",
         "cronjob_get",

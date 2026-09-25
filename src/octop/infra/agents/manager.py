@@ -59,6 +59,7 @@ from octop.infra.backend.resolver import (
 from octop.infra.connectors.builder import (
     build_mcp_server_configs_for_user,
     gateway_mcp_server_names,
+    inject_api_connector_tools,
     inject_missing_gateway_tools,
 )
 from octop.infra.connectors.service import ConnectorService
@@ -295,6 +296,7 @@ class AgentCreateSpec:
     published_expert_id: str | None = None
     welcome_message: str | None = None
     knowledge_base_ids: list[str] | None = None
+    data_source_ids: list[str] | None = None
     mcp_servers: list[str] | None = None
     runtime_config: dict[str, Any] = field(default_factory=dict)
     config: dict[str, Any] = field(default_factory=dict)
@@ -565,6 +567,11 @@ class AgentManager:
                 if spec.knowledge_base_ids is not None
                 else profile.get("knowledge_base_ids")
             )
+            data_source_ids_json = (
+                dump_id_list(spec.data_source_ids)
+                if spec.data_source_ids is not None
+                else profile.get("data_source_ids")
+            )
             mcp_servers_json = (
                 dump_id_list(spec.mcp_servers)
                 if spec.mcp_servers is not None
@@ -592,6 +599,7 @@ class AgentManager:
                     else profile.get("welcome_message")
                 ),
                 knowledge_base_ids=knowledge_ids_json,
+                data_source_ids=data_source_ids_json,
                 mcp_servers=mcp_servers_json,
             )
             row = self._repos.agent_repo.get(agent_id)
@@ -1400,6 +1408,13 @@ class AgentManager:
             return []
         return id_list_from_row(row, "knowledge_base_ids")
 
+    def default_data_source_ids(self, agent_id: str) -> list[str]:
+        """Composer data sources selected on the expert for new sessions."""
+        row = self._repos.agent_repo.get(agent_id)
+        if row is None:
+            return []
+        return id_list_from_row(row, "data_source_ids")
+
     async def prepare_chat_mcp(
         self,
         agent_id: str,
@@ -1475,13 +1490,24 @@ class AgentManager:
                 agent.config.mcp_server_configs[name] = dict(spec)
 
         gateway_missing: list[str] = []
+        api_connector_missing: list[str] = []
         if builtin_missing and uid is not None:
             gateway_names = gateway_mcp_server_names(
                 connector_repo=self._repos.connector_repo,
                 user_id=uid,
             )
+            from octop.infra.connectors.api_connector import (
+                connector_mcp_server_name,
+            )
+
+            api_names: set[str] = set()
+            for name in self._connector_svc.get_api_connectors(uid):
+                api_names.add(connector_mcp_server_name(name))
             gateway_missing = [n for n in builtin_missing if n in gateway_names]
-            builtin_missing = [n for n in builtin_missing if n not in gateway_names]
+            api_connector_missing = [n for n in builtin_missing if n in api_names]
+            builtin_missing = [
+                n for n in builtin_missing if n not in gateway_names and n not in api_names
+            ]
 
         if gateway_missing and uid is not None:
             await self._attach_gateway_tools(
@@ -1490,6 +1516,20 @@ class AgentManager:
                 user_id=uid,
                 server_names=gateway_missing,
             )
+
+        if api_connector_missing and uid is not None:
+            from octop.infra.connectors.builder import (
+                inject_api_connector_tools,
+            )
+
+            inject_api_connector_tools(
+                agent,
+                svc=self._connector_svc,
+                user_id=uid,
+                agent_id=agent_id,
+            )
+            for name in api_connector_missing:
+                agent.config.mcp_server_configs.setdefault(name, {})
 
         if builtin_missing:
             logger.info(
@@ -1606,6 +1646,12 @@ class AgentManager:
             user_id=user_id,
             agent_id=agent_id,
             mcp_server_configs=agent.config.mcp_server_configs,
+        )
+        inject_api_connector_tools(
+            agent,
+            svc=self._connector_svc,
+            user_id=user_id,
+            agent_id=agent_id,
         )
         for name in server_names:
             agent.config.mcp_server_configs.setdefault(name, {})
@@ -1904,6 +1950,21 @@ class AgentManager:
             mcp_servers=dump_id_list(normalized),
         )
 
+    def persist_data_source_ids(self, agent_id: str, data_source_ids: list[str]) -> None:
+        """Persist composer data-source defaults without reloading harness."""
+        row = self._repos.agent_repo.get(agent_id)
+        if row is None:
+            raise OctopError(ErrorCode.AGENT_NOT_FOUND, f"agent {agent_id!r} not found")
+        normalized = (
+            self.validate_data_source_ids(row.user_id, data_source_ids)
+            if row.user_id is not None
+            else skill_package_ids_list({"skill_package_ids": data_source_ids})
+        )
+        self._repos.agent_repo.update_config(
+            agent_id,
+            data_source_ids=dump_id_list(normalized),
+        )
+
     def validate_knowledge_base_ids(self, user_id: int, knowledge_base_ids: list[str]) -> list[str]:
         """Normalize ids and ensure each knowledge base is visible to *user_id*."""
         normalized = skill_package_ids_list({"skill_package_ids": knowledge_base_ids})
@@ -1915,6 +1976,20 @@ class AgentManager:
             raise OctopError(
                 ErrorCode.KNOWLEDGE_NOT_FOUND,
                 f"knowledge base(s) not found: {', '.join(unknown)}",
+            )
+        return normalized
+
+    def validate_data_source_ids(self, user_id: int, data_source_ids: list[str]) -> list[str]:
+        """Normalize ids and ensure each data source is visible to *user_id*."""
+        normalized = skill_package_ids_list({"skill_package_ids": data_source_ids})
+        if not normalized:
+            return []
+        visible = {ds.id for ds in self._repos.data_source_repo.list_visible(user_id)}
+        unknown = [ds_id for ds_id in normalized if ds_id not in visible]
+        if unknown:
+            raise OctopError(
+                ErrorCode.DATA_SOURCE_NOT_FOUND,
+                f"data source(s) not found: {', '.join(unknown)}",
             )
         return normalized
 
@@ -2264,6 +2339,12 @@ class AgentManager:
                 user_id=uid,
                 agent_id=row.agent_id,
                 mcp_server_configs=cfg.mcp_server_configs,
+            )
+            inject_api_connector_tools(
+                agent,
+                svc=self._connector_svc,
+                user_id=uid,
+                agent_id=row.agent_id,
             )
         tool_set: frozenset[str] = getattr(agent, "_mcp_tool_name_set", frozenset())
         logger.info(
@@ -2730,6 +2811,20 @@ class AgentManager:
             )
         )
 
+        from octop.infra.data_sources.tools import (  # noqa: PLC0415
+            build_data_source_tools,
+        )
+
+        data_source_tools = build_data_source_tools(
+            SimpleNamespace(
+                data_source_repo=self._repos.data_source_repo,
+                secret_repo=self._repos.secret_repo,
+                settings_repo=self._repos.settings_repo,
+                provider_repo=self._repos.provider_repo,
+            ),
+            workspace=ws,
+        )
+
         mobile_tools: list[Any] = []
         if self._config.capabilities.mobile.enabled:
             from octop.infra.mobile.tools import build_mobile_tools  # noqa: PLC0415
@@ -2779,7 +2874,7 @@ class AgentManager:
             plugin_tools,
             reserved={
                 str(getattr(t, "name", ""))
-                for t in [*(cron_tools or []), *knowledge_tools, *mobile_tools]
+                for t in [*(cron_tools or []), *knowledge_tools, *data_source_tools, *mobile_tools]
             },
         )
         self._plugin_tool_labels[row.agent_id] = {
@@ -2802,6 +2897,7 @@ class AgentManager:
         from octop.infra.agents.middleware.workspace_image import (
             WorkspaceImageMaterializeMiddleware,
         )
+        from octop.infra.data_sources.tools import DataSourceQueryHintMiddleware
         from octop.infra.knowledge.hint import KnowledgeSearchHintMiddleware
 
         # FilesystemGuard + ModelSettings live in harness-agent (auto-mounted).
@@ -2816,6 +2912,7 @@ class AgentManager:
             ),
             ReasoningRequestMiddleware(),
             KnowledgeSearchHintMiddleware(),
+            DataSourceQueryHintMiddleware(),
             BrowserProfileMiddleware(),
             BinaryReadGuardMiddleware(),
             WorkspaceImageMaterializeMiddleware(workspace=ws),
@@ -2829,6 +2926,7 @@ class AgentManager:
         if cron_tools:
             merged_tools.extend(cron_tools)
         merged_tools.extend(knowledge_tools)
+        merged_tools.extend(data_source_tools)
         merged_tools.extend(mobile_tools)
         merged_tools.extend(plugin_tools)
         # agent_list / ask_agent: PeerAgentMiddleware (team_enabled=True), not config.tools.

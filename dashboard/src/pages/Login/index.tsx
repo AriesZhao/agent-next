@@ -95,7 +95,6 @@ export default function LoginPage() {
           navigate("/setup", { replace: true });
           return;
         }
-        // Only probe OIDC / captcha after setup is done — otherwise lockdown 503s.
         authApi
           .getOauthStatus()
           .then((next) => {
@@ -113,11 +112,7 @@ export default function LoginPage() {
             if (!cancelled) setCaptcha({ provider: "slider" });
           });
       })
-      .catch(() => {
-        // Backend unreachable — let the user attempt login and show a real
-        // error from the request itself; redirecting blindly to /setup
-        // would mask the actual problem.
-      });
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -217,146 +212,144 @@ export default function LoginPage() {
     return null;
   }
 
+  const logoSrc = isDark ? "/logo_name_dark.png" : "/logo_name.png";
+  const markSrc = "/logo_name.png";
+
   return (
-    <div
-      style={{
-        minHeight: "100dvh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "var(--fn-bg-layout)",
-        transition: "background var(--fn-transition)",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 360,
-          padding: "48px 32px 40px",
-          background: "var(--fn-bg-elevated)",
-          borderRadius: 16,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
-          border: "1px solid var(--fn-border-primary)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 20,
-          margin: "0 16px",
-        }}
-      >
-        <img
-          src={isDark ? "/logo_name_dark.png" : "/logo_name.png"}
-          alt="Octop"
-          style={{
-            height: 48,
-            width: "auto",
-            maxWidth: 260,
-            objectFit: "contain",
-            display: "block",
-          }}
-        />
-
-        <h2
-          style={{
-            fontSize: 20,
-            fontWeight: 600,
-            color: "var(--fn-text-primary)",
-            margin: 0,
-            textAlign: "center",
-          }}
-        >
-          {t("login.title")}
-        </h2>
-
-        <Input
-          prefix={
-            <User size={16} style={{ color: "var(--fn-text-quaternary)" }} />
-          }
-          placeholder={t("login.username")}
-          size="large"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          autoFocus
-          style={{ borderRadius: 10 }}
-        />
-
-        <Input.Password
-          prefix={
-            <Lock size={16} style={{ color: "var(--fn-text-quaternary)" }} />
-          }
-          placeholder={t("login.password")}
-          size="large"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          onPressEnter={handleLogin}
-          style={{ borderRadius: 10 }}
-        />
-
-        <CaptchaField
-          ref={captchaRef}
-          config={captcha}
-          resetKey={captchaResetKey}
-          slideHint={t("login.slideHint")}
-          slideVerifiedLabel={t("login.slideVerified")}
-          unsupportedLabel={t("login.unsupportedCaptcha")}
-          onReadyChange={setCaptchaReady}
-        />
-
-        <Button
-          type="primary"
-          size="large"
-          block
-          loading={loading}
-          onClick={handleLogin}
-          disabled={!username || !password || !captchaReady}
-          style={{ borderRadius: 10, height: 44, fontWeight: 500 }}
-        >
-          {t("login.submit")}
-        </Button>
-
-        {providers.length > 0 && (
-          <>
-            <div
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                color: "var(--fn-text-tertiary)",
-                fontSize: 13,
-              }}
-            >
-              <span
-                style={{
-                  flex: 1,
-                  height: 1,
-                  background: "var(--fn-border-primary)",
-                }}
-              />
-              {t("login.or")}
-              <span
-                style={{
-                  flex: 1,
-                  height: 1,
-                  background: "var(--fn-border-primary)",
-                }}
-              />
+    <div className="auth-page">
+      {/* Left decorative panel */}
+      <aside className="auth-left auth-mesh">
+        <div>
+          <div className="auth-left-brand">
+            <img src={markSrc} alt="AriesAgent" />
+            <div>
+              <div className="auth-left-brand-name">AriesAgent</div>
+              <div className="auth-left-brand-sub">AI Agent Platform</div>
             </div>
-            {providers.map((provider) => (
+          </div>
+
+          <h2 className="auth-headline" style={{ marginTop: 48 }}>
+            {t("login.headline")}
+            <br />
+            <span className="auth-gradient-text">
+              {t("login.headlineHighlight")}
+            </span>
+          </h2>
+
+          <p className="auth-description">{t("login.description")}</p>
+
+          <ul className="auth-features">
+            {[
+              t("login.feature1"),
+              t("login.feature2"),
+              t("login.feature3"),
+            ].map((text) => (
+              <li key={text} className="auth-feature-item">
+                <span className="auth-feature-check">✓</span>
+                {text}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p className="auth-left-footer">© AriesAgent</p>
+      </aside>
+
+      {/* Right form panel */}
+      <div className="auth-right">
+        <header className="auth-header">
+          <div className="auth-header-brand">
+            <img src={markSrc} alt="AriesAgent" />
+            <span>AriesAgent</span>
+          </div>
+        </header>
+
+        <main className="auth-main">
+          <div className="auth-card">
+            <img src={logoSrc} alt="AriesAgent" className="auth-card-logo" />
+
+            <h2 className="auth-card-title">{t("login.title")}</h2>
+
+            <div className="auth-form">
+              <Input
+                prefix={
+                  <User
+                    size={16}
+                    style={{ color: "var(--fn-text-quaternary)" }}
+                  />
+                }
+                placeholder={t("login.username")}
+                size="large"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                autoFocus
+                style={{ borderRadius: 10 }}
+              />
+
+              <Input.Password
+                prefix={
+                  <Lock
+                    size={16}
+                    style={{ color: "var(--fn-text-quaternary)" }}
+                  />
+                }
+                placeholder={t("login.password")}
+                size="large"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onPressEnter={handleLogin}
+                style={{ borderRadius: 10 }}
+              />
+
+              <CaptchaField
+                ref={captchaRef}
+                config={captcha}
+                resetKey={captchaResetKey}
+                slideHint={t("login.slideHint")}
+                slideVerifiedLabel={t("login.slideVerified")}
+                unsupportedLabel={t("login.unsupportedCaptcha")}
+                onReadyChange={setCaptchaReady}
+              />
+
               <Button
-                key={provider.kind}
+                type="primary"
                 size="large"
                 block
-                icon={providerIcon(provider)}
-                loading={ssoLoadingKind === provider.kind}
-                onClick={() => void onSso(provider.kind)}
-                style={{ borderRadius: 10, height: 44, fontWeight: 500 }}
+                loading={loading}
+                onClick={handleLogin}
+                disabled={!username || !password || !captchaReady}
+                className="auth-submit-btn"
               >
-                {t("login.oidcWith", { name: providerLabel(provider, t) })}
+                {t("login.submit")}
               </Button>
-            ))}
-          </>
-        )}
+
+              {providers.length > 0 && (
+                <>
+                  <div className="auth-divider">
+                    <span className="auth-divider-line" />
+                    {t("login.or")}
+                    <span className="auth-divider-line" />
+                  </div>
+                  {providers.map((provider) => (
+                    <Button
+                      key={provider.kind}
+                      size="large"
+                      block
+                      icon={providerIcon(provider)}
+                      loading={ssoLoadingKind === provider.kind}
+                      onClick={() => void onSso(provider.kind)}
+                      className="auth-sso-btn"
+                    >
+                      {t("login.oidcWith", {
+                        name: providerLabel(provider, t),
+                      })}
+                    </Button>
+                  ))}
+                </>
+              )}
+            </div>
+          </div>
+        </main>
       </div>
     </div>
   );

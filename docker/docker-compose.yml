@@ -53,3 +53,6 @@ services:
       - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
       - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
       - LANGFUSE_BASE_URL=${LANGFUSE_BASE_URL:-}
+      # 运行时可选组件安装（知识库 OCR 的 pymupdf、本地 embedding 的 fastembed）使用的包源
+      - UV_DEFAULT_INDEX=${OCTOP_UV_INDEX:-}
+      - UV_INDEX_URL=${OCTOP_UV_INDEX:-}

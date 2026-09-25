@@ -53,6 +53,7 @@ PERMISSIONS: dict[str, PermissionDef] = {
     "connectors": _p("connectors", "settings", "连接器", "Connectors"),
     "skill_packages": _p("skill_packages", "settings", "技能包", "Skill Packages"),
     "knowledge_bases": _p("knowledge_bases", "settings", "知识库", "Knowledge Base"),
+    "data_sources": _p("data_sources", "settings", "数据源", "Data Sources"),
     # --- control (nav.control) — page/tab labels ---
     "terminal": _p("terminal", "control", "工作台/终端", "Workbench / Terminal"),
     "browser": _p("browser", "control", "工作台/浏览器", "Workbench / Browser"),
@@ -155,6 +156,15 @@ PERMISSIONS: dict[str, PermissionDef] = {
         "admin",
         "知识库设置",
         "Knowledge-base settings",
+        page="advanced",
+        page_zh="应用设置",
+        page_en="App settings",
+    ),
+    "data_source_settings": _p(
+        "data_source_settings",
+        "admin",
+        "数据源设置",
+        "Data-source settings",
         page="advanced",
         page_zh="应用设置",
         page_en="App settings",

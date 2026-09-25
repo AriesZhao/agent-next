@@ -208,6 +208,7 @@ class Gateway:
             user_repo=self._repos.user_repo,
             connector_repo=self._repos.connector_repo,
             knowledge_repo=self._repos.knowledge_repo,
+            data_source_repo=self._repos.data_source_repo,
             settings_repo=self._repos.settings_repo,
             provider_repo=self._repos.provider_repo,
             dispatcher=self._dispatcher,

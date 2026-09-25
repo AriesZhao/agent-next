@@ -25,7 +25,7 @@ export default function CurrentVersionBadge({
   const tooltip = canUpdate
     ? t("header.currentVersionAdmin", { version })
     : t("header.currentVersion", { version });
-  const label = `v${version}`;
+  const label = "AriesAgent";
 
   if (canUpdate) {
     return (

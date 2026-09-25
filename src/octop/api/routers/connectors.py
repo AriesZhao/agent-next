@@ -16,6 +16,9 @@ from pydantic import BaseModel, Field, model_validator
 from octop.api.common.public_base import resolve_public_base
 from octop.api.deps import current_user, get_server, require_permission
 from octop.i18n import tr
+from octop.infra.connectors.api_connector import (
+    redact_connector_for_api,
+)
 from octop.infra.connectors.builder import (
     mcp_server_name,
     normalize_weiyun_mcp_token,
@@ -166,6 +169,48 @@ class CustomMcpTestBody(BaseModel):
 
     name: str | None = None
     server: dict[str, Any] | None = None
+
+
+class ApiConnectorPutBody(BaseModel):
+    """Create or update one API connector (full definition)."""
+
+    name: str
+    display_name: str | None = None
+    description: str | None = None
+    base_url: str
+    auth: dict[str, Any]
+    identity: dict[str, Any] | None = None
+    tools: list[dict[str, Any]] = Field(default_factory=list)
+    enabled: bool | None = None
+    default_open: bool | None = None
+    shared: bool | None = None
+    max_calls_per_turn: int | None = None
+    max_calls_per_minute: int | None = None
+
+
+class ApiConnectorPatchBody(BaseModel):
+    """Partial update for an API connector."""
+
+    enabled: bool | None = None
+    default_open: bool | None = None
+    shared: bool | None = None
+    display_name: str | None = None
+
+    @model_validator(mode="after")
+    def _require_one_field(self) -> ApiConnectorPatchBody:
+        if all(
+            v is None for v in (self.enabled, self.default_open, self.shared, self.display_name)
+        ):
+            raise ValueError("provide at least one of enabled, default_open, shared, display_name")
+        return self
+
+
+class ApiConnectorTestBody(BaseModel):
+    """Test connectivity for an API connector."""
+
+    name: str | None = None
+    base_url: str | None = None
+    auth: dict[str, Any] | None = None
 
 
 def _oauth_callback_html(
@@ -1388,6 +1433,193 @@ async def oauth_pending(
         "server_name": data.get("server_name"),
         "applied": data.get("applied"),
     }
+
+
+# ── API Connector endpoints ─────────────────────────────────────────────
+
+
+@router.get(
+    "/connectors/api-connectors",
+    summary="List API connectors",
+)
+async def list_api_connectors(
+    user: Any = Depends(current_user),
+    server: Any = Depends(get_server),
+) -> dict[str, Any]:
+    """Return all API connectors visible to the current user (credentials masked)."""
+    connectors = _connector_service(server).get_api_connectors_for_api(user.id)
+    return {"connectors": list(connectors.values())}
+
+
+@router.post(
+    "/connectors/api-connectors",
+    summary="Create or update an API connector",
+)
+async def put_api_connector(
+    body: ApiConnectorPutBody,
+    user: Any = Depends(current_user),
+    server: Any = Depends(get_server),
+) -> dict[str, Any]:
+    """Create or replace one API connector definition and reload agents."""
+    svc = _connector_service(server)
+    spec: dict[str, Any] = {
+        "base_url": body.base_url,
+        "auth": body.auth,
+        "tools": body.tools,
+    }
+    if body.display_name is not None:
+        spec["display_name"] = body.display_name
+    if body.description is not None:
+        spec["description"] = body.description
+    if body.identity is not None:
+        spec["identity"] = body.identity
+    if body.enabled is not None:
+        spec["enabled"] = body.enabled
+    if body.default_open is not None:
+        spec["default_open"] = body.default_open
+    if body.shared is not None:
+        spec["shared"] = body.shared
+    if body.max_calls_per_turn is not None:
+        spec["max_calls_per_turn"] = body.max_calls_per_turn
+    if body.max_calls_per_minute is not None:
+        spec["max_calls_per_minute"] = body.max_calls_per_minute
+    try:
+        connectors = svc.put_api_connector(user.id, body.name, spec)
+    except ConnectorNameTakenError as exc:
+        _raise_name_taken(str(exc))
+    except ValueError as exc:
+        raise OctopError(ErrorCode.CONNECTOR_INVALID_CREDENTIALS, str(exc)) from exc
+    server.services.audit_repo.write(
+        actor=user.username,
+        action="api_connector.save",
+        target=body.name,
+    )
+    _schedule_connector_reload(server, user.id, all_users=spec.get("shared") is True)
+    return {"connector": redact_connector_for_api(body.name, connectors[body.name])}
+
+
+@router.get(
+    "/connectors/api-connectors/{name}",
+    summary="Get one API connector",
+)
+async def get_api_connector(
+    name: str,
+    user: Any = Depends(current_user),
+    server: Any = Depends(get_server),
+) -> dict[str, Any]:
+    """Return one API connector detail with credentials masked."""
+    connector = _connector_service(server).get_api_connector(user.id, name)
+    if connector is None:
+        raise OctopError(ErrorCode.CONNECTOR_NOT_FOUND, f"API connector {name!r} not found")
+    return {"connector": connector}
+
+
+@router.patch(
+    "/connectors/api-connectors/{name}",
+    summary="Patch one API connector",
+)
+async def patch_api_connector(
+    name: str,
+    body: ApiConnectorPatchBody,
+    user: Any = Depends(current_user),
+    server: Any = Depends(get_server),
+) -> dict[str, Any]:
+    """Update enabled / default_open / shared / display_name for one API connector."""
+    svc = _connector_service(server)
+    try:
+        connectors = svc.patch_api_connector(
+            user.id,
+            name,
+            enabled=body.enabled,
+            default_open=body.default_open,
+            shared=body.shared,
+            display_name=body.display_name,
+        )
+    except KeyError as exc:
+        raise OctopError(
+            ErrorCode.CONNECTOR_NOT_FOUND, f"API connector {name!r} not found"
+        ) from exc
+    except ValueError as exc:
+        raise OctopError(ErrorCode.CONNECTOR_INVALID_CREDENTIALS, str(exc)) from exc
+    _schedule_connector_reload(server, user.id, all_users=body.shared is not None)
+    return {"connector": redact_connector_for_api(name, connectors[name])}
+
+
+@router.delete(
+    "/connectors/api-connectors/{name}",
+    summary="Delete one API connector",
+)
+async def delete_api_connector(
+    name: str,
+    user: Any = Depends(current_user),
+    server: Any = Depends(get_server),
+) -> dict[str, Any]:
+    """Delete one API connector and reload agents."""
+    svc = _connector_service(server)
+    try:
+        svc.delete_api_connector(user.id, name)
+    except KeyError as exc:
+        raise OctopError(
+            ErrorCode.CONNECTOR_NOT_FOUND, f"API connector {name!r} not found"
+        ) from exc
+    server.services.audit_repo.write(
+        actor=user.username,
+        action="api_connector.delete",
+        target=name,
+    )
+    _schedule_connector_reload(server, user.id)
+    return {"ok": True}
+
+
+@router.post(
+    "/connectors/api-connectors/test",
+    summary="Test API connector connectivity",
+)
+async def test_api_connector(
+    body: ApiConnectorTestBody,
+    user: Any = Depends(current_user),
+    server: Any = Depends(get_server),
+) -> dict[str, Any]:
+    """Probe connectivity by sending a HEAD/GET to base_url with auth headers."""
+    import httpx
+
+    svc = _connector_service(server)
+    base_url: str | None = body.base_url
+    auth: dict[str, Any] | None = body.auth
+
+    if body.name and not base_url:
+        saved = svc.get_api_connectors(user.id)
+        raw = saved.get(body.name)
+        if not isinstance(raw, dict):
+            raise OctopError(
+                ErrorCode.CONNECTOR_NOT_FOUND, f"API connector {body.name!r} not found"
+            )
+        base_url = raw.get("base_url", "")
+        auth = raw.get("auth")
+
+    if not base_url:
+        raise OctopError(ErrorCode.CONNECTOR_INVALID_CREDENTIALS, "base_url is required")
+
+    headers: dict[str, str] = {}
+    if auth:
+        from octop.infra.connectors.api_connector.http_executor import build_auth_headers
+
+        headers.update(build_auth_headers(auth))
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.request("GET", base_url, headers=headers, follow_redirects=True)
+        return {
+            "ok": resp.status_code < 500,
+            "status_code": resp.status_code,
+            "reachable": True,
+        }
+    except httpx.ConnectError:
+        return {"ok": False, "reachable": False, "error": "connection_failed"}
+    except httpx.TimeoutException:
+        return {"ok": False, "reachable": False, "error": "timeout"}
+    except Exception as exc:
+        return {"ok": False, "reachable": False, "error": str(exc)}
 
 
 async def validate_chat_mcp_servers(

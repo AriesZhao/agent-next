@@ -53,6 +53,7 @@ export const SIDEBAR_GROUPED_NAV_KEYS = [
   "connectors",
   "skill-packages",
   "knowledge-bases",
+  "data-sources",
   "workbench",
   "remote-desktop",
   "acp",
@@ -144,6 +145,14 @@ export function buildNavSections(
       path: "/knowledge-bases",
       icon: <Database size={iconSize} strokeWidth={iconStroke} />,
       labelKey: "nav.knowledgeBases",
+    });
+  }
+  if (navAllowed(user, "data-sources")) {
+    settingsItems.push({
+      key: "data-sources",
+      path: "/data-sources",
+      icon: <Database size={iconSize} strokeWidth={iconStroke} />,
+      labelKey: "nav.dataSources",
     });
   }
   if (settingsItems.length > 0) {

@@ -9,6 +9,18 @@ from octop.i18n.domains.channel import (
     channel_tool_hint_end,
     channel_tool_hint_start,
 )
+from octop.i18n.domains.data_source import (
+    error_text as data_source_error_text,
+)
+from octop.i18n.domains.data_source import (
+    generated_sql_note as data_source_generated_sql_note,
+)
+from octop.i18n.domains.data_source import (
+    guard_reason_phrase as data_source_guard_reason_phrase,
+)
+from octop.i18n.domains.data_source import (
+    render_labels as data_source_render_labels,
+)
 from octop.i18n.domains.errors import error_message
 from octop.i18n.domains.skills import all_skill_labels, skill_display_name
 from octop.i18n.domains.tools import all_tool_labels, hitl_tool_catalog, tool_display_name
@@ -34,6 +46,10 @@ __all__ = [
     "channel_runtime_reason",
     "channel_tool_hint_end",
     "channel_tool_hint_start",
+    "data_source_error_text",
+    "data_source_generated_sql_note",
+    "data_source_guard_reason_phrase",
+    "data_source_render_labels",
     "error_message",
     "flatten_keys",
     "lookup",

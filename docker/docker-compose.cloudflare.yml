@@ -1,0 +1,34 @@
+# =============================================================================
+# Octop — 本机 Cloudflare 接入 override（与 aries-infra 共用 aries-net）
+#
+# 用法（仓库根目录）:
+#   docker compose -f docker/docker-compose.yml \
+#     -f docker/docker-compose.cloudflare.yml up -d --build
+#
+# 配套在 docker/.env 中设置:
+#   OCTOP_DATA=D:/servers/octop
+#   OCTOP_DEFAULT_PASSWORD=<初始管理员密码>
+#
+# aries-infra 的 nginx 把 agent.chusing.com 反代到 http://octop:8088
+# 默认构建源均为实测可用配置（node:22-alpine 需本地已有；npmmirror；清华 PyPI；
+# 腾讯云 apt），可在 docker/.env 覆盖
+# =============================================================================
+
+services:
+  octop:
+    build:
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-node:22-alpine}
+        PYTHON_IMAGE: ${PYTHON_IMAGE:-python:3.12-slim}
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}
+        PIP_TRUSTED_HOST: ${PIP_TRUSTED_HOST:-pypi.tuna.tsinghua.edu.cn}
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com}
+        APT_MIRROR: ${APT_MIRROR:-mirrors.cloud.tencent.com}
+    networks:
+      - default
+      - aries-net
+
+networks:
+  aries-net:
+    name: aries-net
+    external: true

@@ -190,6 +190,59 @@ export interface FeishuUserAuthCompleteResult {
   cli_config_key: string;
 }
 
+export interface ApiConnectorAuthPreview {
+  type: string;
+  token_preview?: string;
+  api_key_preview?: string;
+}
+
+export interface ApiConnectorToolSummary {
+  name: string;
+  description: string;
+  method: string;
+  path: string;
+}
+
+export interface ApiConnector {
+  name: string;
+  display_name: string;
+  description?: string;
+  base_url: string;
+  auth: ApiConnectorAuthPreview;
+  identity?: Record<string, unknown>;
+  tools_summary: ApiConnectorToolSummary[];
+  tool_count: number;
+  enabled: boolean;
+  default_open: boolean;
+  shared: boolean;
+  max_calls_per_turn?: number;
+  max_calls_per_minute?: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface ApiConnectorSpec {
+  name: string;
+  display_name?: string;
+  description?: string;
+  base_url: string;
+  auth: Record<string, unknown>;
+  identity?: Record<string, unknown>;
+  tools?: Record<string, unknown>[];
+  enabled?: boolean;
+  default_open?: boolean;
+  shared?: boolean;
+  max_calls_per_turn?: number;
+  max_calls_per_minute?: number;
+}
+
+export interface ApiConnectorTestResult {
+  ok: boolean;
+  reachable: boolean;
+  status_code?: number;
+  error?: string;
+}
+
 export const connectorsApi = {
   catalog: () => request<ConnectorCatalogEntry[]>("/connectors/catalog"),
 
@@ -385,6 +438,55 @@ export const connectorsApi = {
 
   testCustomMcp: (body: { name?: string; server?: CustomMcpServerSpec }) =>
     request<ConnectorProbeResult>("/connectors/custom-mcp/test", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  listApiConnectors: () =>
+    request<{ connectors: ApiConnector[] }>("/connectors/api-connectors"),
+
+  getApiConnector: (name: string) =>
+    request<{ connector: ApiConnector }>(
+      `/connectors/api-connectors/${encodeURIComponent(name)}`,
+    ),
+
+  putApiConnector: (connector: ApiConnectorSpec) =>
+    request<{ connector: ApiConnector }>("/connectors/api-connectors", {
+      method: "POST",
+      body: JSON.stringify(connector),
+    }),
+
+  patchApiConnector: (
+    name: string,
+    body: {
+      enabled?: boolean;
+      default_open?: boolean;
+      shared?: boolean;
+      display_name?: string;
+    },
+  ) =>
+    request<{ connector: ApiConnector }>(
+      `/connectors/api-connectors/${encodeURIComponent(name)}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      },
+    ),
+
+  deleteApiConnector: (name: string) =>
+    request<{ ok: boolean }>(
+      `/connectors/api-connectors/${encodeURIComponent(name)}`,
+      {
+        method: "DELETE",
+      },
+    ),
+
+  testApiConnector: (body: {
+    name?: string;
+    base_url?: string;
+    auth?: Record<string, unknown>;
+  }) =>
+    request<ApiConnectorTestResult>("/connectors/api-connectors/test", {
       method: "POST",
       body: JSON.stringify(body),
     }),

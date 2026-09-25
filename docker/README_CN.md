@@ -15,6 +15,8 @@
 | `docker-compose.postgres.yml` | 仅 PostgreSQL（+ pgvector）开发/测试库；扩展在 `postgres/init-vector.sql` |
 | `postgres/init-vector.sql` | 实例级 `CREATE EXTENSION vector`（initdb.d；**不**进 Octop 迁移） |
 | `docker-entrypoint.sh` | 容器入口：首次初始化数据库并启动服务 |
+| `fetch_wheels.sh` | 在普通容器内预下载 Python 制品（离线构建用，见下） |
+| `docker-compose.cloudflare.yml` | 本机 Cloudflare 接入 override：加入外部网络 `aries-net` |
 
 ### 快速开始
 
@@ -40,17 +42,44 @@ docker run -d \
   octop:latest
 ```
 
+### 本机离线构建（Windows / Docker Desktop）
+
+Docker Desktop 的 BuildKit 构建容器内下载 Python 包可能挂起（大文件长时间零字节；普通 `docker run` 网络正常）。此时使用「普通容器预下载制品 + 全离线构建」：
+
+```bash
+# 1) 预下载（依赖变更后重跑；目标目录已有的文件会跳过）
+docker run --rm -v "<仓库根目录的绝对路径>:/p" -w /p \
+    python:3.12-slim sh docker/fetch_wheels.sh
+# 2) 全离线构建并启动
+docker compose -f docker/docker-compose.yml \
+    -f docker/docker-compose.cloudflare.yml up -d --build
+```
+
+制品写入 `docker/wheels`（约 170MB）与 `docker/requirements.txt`，均为本地产物（已 gitignore）；Dockerfile 以 bind mount 读取、不进入镜像层。仅改源码时直接执行第 2 步，依赖层走缓存，约 1 分钟完成。
+
+### 接入 Cloudflare（本机反代）
+
+`docker-compose.cloudflare.yml` 让容器加入外部网络 `aries-net`，供同网络的 nginx 将域名反代到 `http://octop:8088`，链路为：
+
+```
+浏览器 → Cloudflare Tunnel → nginx(aries-net) → octop:8088
+```
+
+该 override 为本机环境专用；其默认构建源（`node:22-alpine`、npmmirror、清华 PyPI、腾讯云 apt）可在 `docker/.env` 覆盖。使用前需先创建外部网络（由 aries-infra 提供）：`docker network inspect aries-net`。
+
 ### 国内镜像加速
 
-构建时可通过环境变量加速依赖下载：
+在线构建（网络正常的 Linux / CI 环境）可通过环境变量加速依赖下载：
 
 ```bash
 PIP_INDEX_URL=https://mirrors.cloud.tencent.com/pypi/simple \
 PIP_TRUSTED_HOST=mirrors.cloud.tencent.com \
-NPM_REGISTRY=https://mirrors.cloud.tencent.com/npm/ \
+NPM_REGISTRY=https://registry.npmmirror.com \
 APT_MIRROR=mirrors.cloud.tencent.com \
 bash docker/docker_build.sh
 ```
+
+> 注意：`https://mirrors.cloud.tencent.com/npm/` 会 404，npm 源请用 `https://registry.npmmirror.com`。
 
 ### 常用环境变量
 
@@ -88,4 +117,6 @@ docker logs -f octop
 docker exec -it octop octop --version
 docker compose -f docker/docker-compose.yml down
 docker compose -f docker/docker-compose.yml up -d --build
+# 本机 Cloudflare 接入路线
+docker compose -f docker/docker-compose.yml -f docker/docker-compose.cloudflare.yml up -d --build
 ```

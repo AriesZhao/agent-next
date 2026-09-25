@@ -533,6 +533,19 @@ def build_mcp_server_configs_for_user(
                 spec.get("transport"),
             )
 
+    for name, spec in svc.get_api_connectors(user_id).items():
+        if not isinstance(spec, dict) or spec.get("enabled", True) is False:
+            continue
+        from octop.infra.connectors.api_connector import connector_mcp_server_name
+
+        mcp_name = connector_mcp_server_name(name)
+        configs[mcp_name] = {}
+        if log:
+            logger.info(
+                "  defer api-connector %s (in-process, no HTTP preload)",
+                mcp_name,
+            )
+
     if log:
         logger.info(
             "build_mcp_server_configs agent=%s result: %s",
@@ -617,4 +630,55 @@ def inject_missing_gateway_tools(
         len(extra),
         agent_id,
         ima_names,
+    )
+
+
+def inject_api_connector_tools(
+    agent: Any,
+    *,
+    svc: Any,
+    user_id: int,
+    agent_id: str,
+) -> None:
+    """Register API connector tools in-process for the given agent."""
+    import logging
+
+    from harness_agent.mcp import mcp_tool_names
+
+    from octop.infra.connectors.api_connector import (
+        connector_enabled,
+        connector_mcp_server_name,
+    )
+    from octop.infra.connectors.api_connector.langchain import (
+        build_api_connector_langchain_tools,
+    )
+
+    logger = logging.getLogger(__name__)
+    tool_set = mcp_tool_names(getattr(agent, "_mcp_tools", []))
+    extra: list[Any] = []
+
+    for name, spec in svc.get_api_connectors(user_id).items():
+        if not isinstance(spec, dict) or not connector_enabled(spec):
+            continue
+        mcp_name = connector_mcp_server_name(name)
+        if any(str(t).startswith(f"{mcp_name}_") for t in tool_set):
+            continue
+        tools = build_api_connector_langchain_tools(
+            connector_name=name,
+            connector_def=spec,
+            mcp_server_name=mcp_name,
+        )
+        extra.extend(tools)
+
+    if not extra:
+        logger.info(
+            "api-connector tool injection skipped for agent %s: no new tools",
+            agent_id,
+        )
+        return
+    agent.inject_mcp_tools(extra)
+    logger.info(
+        "Injected %d api-connector tools for agent %s",
+        len(extra),
+        agent_id,
     )

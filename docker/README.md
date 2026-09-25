@@ -15,6 +15,8 @@ This directory contains the Docker build and deployment assets for Octop.
 | `docker-compose.postgres.yml` | PostgreSQL (+ pgvector) for dual-backend dev/tests |
 | `postgres/init-vector.sql` | Instance-level `CREATE EXTENSION vector` (initdb.d; **not** Octop migrations) |
 | `docker-entrypoint.sh` | Container entrypoint: first-run init + start server |
+| `fetch_wheels.sh` | Pre-fetch Python artifacts in a regular container (offline build) |
+| `docker-compose.cloudflare.yml` | Local Cloudflare override: joins external `aries-net` network |
 
 ### Quick start
 
@@ -40,17 +42,44 @@ docker run -d \
   octop:latest
 ```
 
+### Offline build (Windows / Docker Desktop)
+
+Downloading Python packages inside Docker Desktop's BuildKit containers can hang (large files, zero bytes for minutes; a plain `docker run` on the same host works). Use "pre-fetch in a regular container + fully offline build":
+
+```bash
+# 1) Pre-fetch (re-run after dependency changes; files already present are skipped)
+docker run --rm -v "<absolute path to repo root>:/p" -w /p \
+    python:3.12-slim sh docker/fetch_wheels.sh
+# 2) Build offline and start
+docker compose -f docker/docker-compose.yml \
+    -f docker/docker-compose.cloudflare.yml up -d --build
+```
+
+Artifacts go to `docker/wheels` (~170MB) and `docker/requirements.txt` — local-only and git-ignored; the Dockerfile reads them via bind mounts, so they never enter the image layers. For source-only changes just run step 2 — the dependency layer is cached (~1 minute).
+
+### Cloudflare integration (local reverse proxy)
+
+`docker-compose.cloudflare.yml` adds the container to the external `aries-net` network so an nginx on that network can reverse-proxy a domain to `http://octop:8088`:
+
+```
+Browser → Cloudflare Tunnel → nginx (aries-net) → octop:8088
+```
+
+The override is local-environment specific; its verified default build sources (`node:22-alpine`, npmmirror, Tsinghua PyPI, Tencent apt) can be overridden in `docker/.env`. The external network is provided by aries-infra — check it with `docker network inspect aries-net` first.
+
 ### Faster downloads (China mirrors)
 
-Pass mirror env vars when building:
+For online builds (Linux / CI with healthy networking), pass mirror env vars:
 
 ```bash
 PIP_INDEX_URL=https://mirrors.cloud.tencent.com/pypi/simple \
 PIP_TRUSTED_HOST=mirrors.cloud.tencent.com \
-NPM_REGISTRY=https://mirrors.cloud.tencent.com/npm/ \
+NPM_REGISTRY=https://registry.npmmirror.com \
 APT_MIRROR=mirrors.cloud.tencent.com \
 bash docker/docker_build.sh
 ```
+
+> Note: `https://mirrors.cloud.tencent.com/npm/` returns 404 — use `https://registry.npmmirror.com` for npm.
 
 ### Environment variables
 
@@ -88,4 +117,6 @@ docker logs -f octop
 docker exec -it octop octop --version
 docker compose -f docker/docker-compose.yml down
 docker compose -f docker/docker-compose.yml up -d --build
+# Local Cloudflare route
+docker compose -f docker/docker-compose.yml -f docker/docker-compose.cloudflare.yml up -d --build
 ```
