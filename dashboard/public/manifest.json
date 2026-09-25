@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Octop",
-  "short_name": "Octop",
-  "description": "Smarter self-hosted AI assistant — multi-user, multi-agent",
+  "name": "AriesAgent",
+  "short_name": "AriesAgent",
+  "description": "AriesAgent - AI Assistant Platform",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
